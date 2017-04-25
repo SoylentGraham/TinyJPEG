@@ -119,6 +119,7 @@ int tje_encode_to_file(const char* dest_path,
                        const int width,
                        const int height,
                        const int num_components,
+					   bool Rgb,
                        const unsigned char* src_data);
 #endif
 
@@ -144,6 +145,7 @@ int tje_encode_to_file_at_quality(const char* dest_path,
                                   const int width,
                                   const int height,
                                   const int num_components,
+								  bool Rgb,
                                   const unsigned char* src_data);
 #endif
 // - tje_encode_with_func -
@@ -162,6 +164,7 @@ int tje_encode_with_func(tje_write_func* func,
                          const int width,
                          const int height,
                          const int num_components,
+						 bool Rgb,
                          const unsigned char* src_data);
 
 #endif // TJE_HEADER_GUARD
@@ -949,7 +952,8 @@ static int tjei_encode_main(TJEState* state,
                             const unsigned char* src_data,
                             const int width,
                             const int height,
-                            const int src_num_components)
+                            const int src_num_components,
+							bool Rgb)	//	else bgr
 {
     if (src_num_components != 3 && src_num_components != 4) {
         return 0;
@@ -1111,9 +1115,9 @@ static int tjei_encode_main(TJEState* state,
                     }
                     assert(src_index < width * height * src_num_components);
 
-                    uint8_t r = src_data[src_index + 0];
+                    uint8_t r = src_data[src_index + (Rgb?0:2)];
                     uint8_t g = src_data[src_index + 1];
-                    uint8_t b = src_data[src_index + 2];
+                    uint8_t b = src_data[src_index + (Rgb?2:0)];
 
                     float luma = 0.299f   * r + 0.587f    * g + 0.114f    * b - 128;
                     float cb   = -0.1687f * r - 0.3313f   * g + 0.5f      * b;
@@ -1178,9 +1182,10 @@ int tje_encode_to_file(const char* dest_path,
                        const int width,
                        const int height,
                        const int num_components,
+					   bool Rgb,
                        const unsigned char* src_data)
 {
-    int res = tje_encode_to_file_at_quality(dest_path, 3, width, height, num_components, src_data);
+    int res = tje_encode_to_file_at_quality(dest_path, 3, width, height, num_components, Rgb, src_data);
     return res;
 }
 #endif
@@ -1200,6 +1205,7 @@ int tje_encode_to_file_at_quality(const char* dest_path,
                                   const int width,
                                   const int height,
                                   const int num_components,
+								  bool Rgb,
                                   const unsigned char* src_data)
 {
     FILE* fd = fopen(dest_path, "wb");
@@ -1209,7 +1215,7 @@ int tje_encode_to_file_at_quality(const char* dest_path,
     }
 
     int result = tje_encode_with_func(tjei_stdlib_func, fd,
-                                      quality, width, height, num_components, src_data);
+                                      quality, width, height, num_components, Rgb, src_data);
 
     result |= 0 == fclose(fd);
 
@@ -1223,6 +1229,7 @@ int tje_encode_with_func(tje_write_func* func,
                          const int width,
                          const int height,
                          const int num_components,
+						 bool Rgb,
                          const unsigned char* src_data)
 {
     if (quality < 1 || quality > 3) {
@@ -1270,7 +1277,7 @@ int tje_encode_with_func(tje_write_func* func,
 
     tjei_huff_expand(&state);
 
-    int result = tjei_encode_main(&state, src_data, width, height, num_components);
+    int result = tjei_encode_main(&state, src_data, width, height, num_components, Rgb );
 
     return result;
 }
